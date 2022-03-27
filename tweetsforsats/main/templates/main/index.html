@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Tweets For Sats</title>
+    </head>
+    <body>
+        <h1>Welcome to Tweets for Sats</h1>
+        {% if key %}
+        <h1>Hello, @{{ key }}</h1>
+        <a href="{% url 'lnlogin:logout' %}">Logout</a>
+        {% else %}
+        <a href="{% url 'lnlogin:login' %}">Login</a>
+        {% endif %}
+    </body>
+</html>

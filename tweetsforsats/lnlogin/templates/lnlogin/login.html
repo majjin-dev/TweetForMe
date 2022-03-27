@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Tweets For Sats - Login</title>
+    </head>
+    <body onload="startChecking()">
+        {% load qr_code %}
+        <h2><a href="{% url 'main:index' %}">Home</a></h2>
+
+        <h1>Login to Tweets for Sats</h1>
+
+        {% qr_from_text lnurl size="m" %}
+        <button type="button" onclick="newcode()" id="newcodeBtn" hidden>Get New QR Code</button>
+        <script>
+            function startChecking(){
+                var interval = setInterval(check, 2000);
+                setTimeout(expirecode, 120000, interval);
+            }
+
+            function check() {
+                fetch("{% url 'lnlogin:check' challenge %}")
+                .then(response => response.json())
+                .then(function(data){
+                    if (data.authenticated == true){
+                        window.location.replace("{% url 'main:index' %}");
+                    }
+                });
+            }
+
+            function expirecode(interval) {
+                clearInterval(interval);
+                document.getElementById("newcodeBtn").removeAttribute("hidden");
+            }
+
+            function newcode(){
+                location.reload();
+            }
+        </script>
+    </body>
+</html>
