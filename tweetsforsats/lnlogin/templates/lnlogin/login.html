@@ -9,7 +9,7 @@
 
         <h1>Login to Tweets for Sats</h1>
 
-        {% qr_from_text lnurl size="m" %}
+        {% qr_from_text lnurl size="s" %}
         <button type="button" onclick="newcode()" id="newcodeBtn" hidden>Get New QR Code</button>
         <script>
             function startChecking(){
@@ -18,7 +18,7 @@
             }
 
             function check() {
-                fetch("{% url 'lnlogin:check' challenge %}")
+                fetch("{% url 'lnlogin:check' %}?k1={{ challenge }}")
                 .then(response => response.json())
                 .then(function(data){
                     if (data.authenticated == true){

@@ -6,10 +6,26 @@
     <body>
         <h1>Welcome to Tweets for Sats</h1>
         {% if key %}
-        <h1>Hello, @{{ key }}</h1>
+        {% load qr_code %}
         <a href="{% url 'lnlogin:logout' %}">Logout</a>
+        <h1>Hello, @{{ key }}</h1>
+        <h3>Pending: {{ balances.pending }} sats | Available: {{ balances.available }} sats</h3>
+
+        <button type="button" onclick="">Tweet!</button>
+
+        <div id="invoice">
+            {% qr_from_text invoice size="s" %}
+        </div>
+
+        <div id="tweet" hidden>
+
+        </div>
         {% else %}
         <a href="{% url 'lnlogin:login' %}">Login</a>
         {% endif %}
+
+        <script>
+            
+        </script>
     </body>
 </html>

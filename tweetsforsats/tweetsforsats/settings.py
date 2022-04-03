@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'main',
     'lnlogin',
     'qr_code',
-    'sslserver',
 ]
 
 MIDDLEWARE = [

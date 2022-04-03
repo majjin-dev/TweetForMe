@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from hashlib import sha256
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
-from lnurl import encode, Lnurl
+from lnurl import encode
 
 from importlib import import_module
 from django.conf import settings
@@ -12,6 +12,10 @@ from django.contrib.sessions.models import Session
 
 import secrets
 import ecdsa
+import configparser
+
+config = configparser.ConfigParser()
+config.read('tweetsforsats/my_settings.ini')
 
 # Create your views here.
 def auth(request):
@@ -46,7 +50,7 @@ def login(request):
 
     cache.get_or_set(k1, '', 120)
 
-    url = 'https://7c51-143-244-47-100.ngrok.io/lnlogin/auth?tag=login&k1=' + k1
+    url = f"{config['DEBUG']['BaseUrl']}/lnlogin/auth?tag=login&k1={k1}"
     lnurl = encode(url)
     context = {
         'lnurl': lnurl,
@@ -54,10 +58,13 @@ def login(request):
     }
     return render(request, 'lnlogin/login.html', context)
 
-def check(request, k1):
+def check(request):
+    k1 = request.GET.get('k1')
     key = cache.get(k1)
     if not key is None and not key == '':
-        # request.session.session_key = k1
+        # TODO: Tie this session to the ip and user agent string of the user
+        # TODO: Decorator that checks the ip and user agent string to validate user
+        # TODO: https://docs.djangoproject.com/en/4.0/ref/request-response/#django.http.HttpRequest.META
         request.session['key'] = key
         cache.delete(k1)
         return JsonResponse({'authenticated': True})
