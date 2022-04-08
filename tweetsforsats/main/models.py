@@ -12,3 +12,4 @@ class Tweet(models.Model):
     twitter_id = models.CharField(max_length=25, blank=False, null=False, unique=True)
     created = models.DateTimeField(auto_now=True)
     stake = models.IntegerField(default=100)
+    # TODO: Add paid invoice id here, we need to check if the invoice has been used before...
