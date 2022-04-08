@@ -19,6 +19,10 @@
             <h3>Expires in <span id="timer">90</span> seconds</h3>
         </div>
 
+        <div id="tweet" style="display: none;">
+            <h2>FORM HERE</h2>
+        </div>
+
         <script>
             var interval;
             var timer_interval;
@@ -27,7 +31,6 @@
             function startChecking(){
                 interval = setInterval(check, 2000);
                 timer_interval = setInterval(timer, 1000);
-                // setTimeout(expirecode, 120000, interval);
             }
 
             function check() {
@@ -36,12 +39,14 @@
                 .then(function(data){
                     if (data.status == "Paid"){
                         clearInterval(interval);
-                        window.alert("Paid!");
-                        window.location.replace("{% url 'main:index' %}");
+                        clearInterval(timer_interval);
+                        var invoice = document.getElementById("invoice");
+                        invoice.style.display = "None";
+                        var tweet = document.getElementById("tweet");
+                        tweet.style.display = "block";
                     }
                     else if (data.status == "Expired"){
                         clearInterval(interval);
-                        window.alert("Expired.");
                         location.reload();
                     }
                 });
@@ -56,10 +61,6 @@
             }
         </script>
         {% endif %}
-
-        <div id="tweet" hidden>
-
-        </div>
 
         <script>
             function get_invoice(){
