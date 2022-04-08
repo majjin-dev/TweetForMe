@@ -21,14 +21,16 @@ def index(request):
     if key != '':
         balances, created = Balances.objects.get_or_create(key=key, defaults={'pending': 0, 'available': 0, 'withdrawn': 0})
 
-    inv = invoice()
+    get_invoice = request.GET.get('invoice')
 
     bolt11 = ""
     invoice_id = ""
 
     try:
-        bolt11 = inv['BOLT11']
-        invoice_id = inv['id']
+        if get_invoice:
+            inv = invoice()
+            bolt11 = inv['BOLT11']
+            invoice_id = inv['id']
     except KeyError:
         pass
 
@@ -56,14 +58,14 @@ def invoice():
 
     return invoice
     
-def check_invoice(request, id):
+def check_invoice(request, invoice_id):
     host = config['BTCPAY']['Url']
     token = config['BTCPAY']['Token']
     store = config['BTCPAY']['StoreId']
 
     headers = {'Authorization': f"token {token}"}
 
-    r = requests.get(f"{host}/stores/{store}/lightning/BTC/invoices/{id}", headers=headers)
+    r = requests.get(f"{host}/stores/{store}/lightning/BTC/invoices/{invoice_id}", headers=headers)
     
     invoice = r.json()
 
@@ -72,6 +74,8 @@ def check_invoice(request, id):
     try:
         status = invoice['status']
     except KeyError:
+        if invoice != None:
+            status = "Expired"
         pass
 
     return JsonResponse({'status': status})

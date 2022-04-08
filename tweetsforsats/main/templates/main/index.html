@@ -3,7 +3,7 @@
     <head>
         <title>Tweets For Sats</title>
     </head>
-    <body>
+    <body {% if invoice_id %}onload="startChecking()"{% endif %}>
         <h1>Welcome to Tweets for Sats</h1>
         {% if key %}
         {% load qr_code %}
@@ -11,21 +11,63 @@
         <h1>Hello, @{{ key }}</h1>
         <h3>Pending: {{ balances.pending }} sats | Available: {{ balances.available }} sats</h3>
 
-        <button type="button" onclick="">Tweet!</button>
+        <button type="button" onclick="get_invoice()">Tweet!</button>
 
+        {% if invoice_id %}
         <div id="invoice">
             {% qr_from_text invoice size="s" %}
+            <h3>Expires in <span id="timer">90</span> seconds</h3>
         </div>
+
+        <script>
+            var interval;
+            var timer_interval;
+            var timer_set = 90;
+
+            function startChecking(){
+                interval = setInterval(check, 2000);
+                timer_interval = setInterval(timer, 1000);
+                // setTimeout(expirecode, 120000, interval);
+            }
+
+            function check() {
+                fetch("{% url 'main:checkinvoice' invoice_id %}")
+                .then(response => response.json())
+                .then(function(data){
+                    if (data.status == "Paid"){
+                        clearInterval(interval);
+                        window.alert("Paid!");
+                        window.location.replace("{% url 'main:index' %}");
+                    }
+                    else if (data.status == "Expired"){
+                        clearInterval(interval);
+                        window.alert("Expired.");
+                        location.reload();
+                    }
+                });
+            }
+
+            function timer(){
+                timer_set = timer_set - 1;
+                document.getElementById("timer").innerHTML = timer_set;
+                if (timer_set == 0){
+                    clearInterval(timer_interval);
+                }
+            }
+        </script>
+        {% endif %}
 
         <div id="tweet" hidden>
 
         </div>
+
+        <script>
+            function get_invoice(){
+                window.location.replace("{% url 'main:index' %}?invoice=true");
+            }
+        </script>
         {% else %}
         <a href="{% url 'lnlogin:login' %}">Login</a>
         {% endif %}
-
-        <script>
-            
-        </script>
     </body>
 </html>
