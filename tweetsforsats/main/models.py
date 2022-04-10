@@ -1,6 +1,6 @@
 from django.db import models
 
-# Create your models here.
+
 class Balances(models.Model):
     key = models.CharField(max_length=66, blank=False, null=False, unique=True, db_index=True)
     pending = models.IntegerField()
@@ -12,4 +12,4 @@ class Tweet(models.Model):
     twitter_id = models.CharField(max_length=25, blank=False, null=False, unique=True)
     created = models.DateTimeField(auto_now=True)
     stake = models.IntegerField(default=100)
-    # TODO: Add paid invoice id here, we need to check if the invoice has been used before...
+    invoice_id = models.CharField(max_length=100, blank=False)
