@@ -1,16 +1,11 @@
 from django.shortcuts import render, redirect
 from main.models import Balances, Tweet
 from django.http import JsonResponse
-import configparser
 from django.conf import settings
 from lnurl import encode
 import requests
 from main.forms import TweetForm
 import tweepy
-
-#TODO: Remove from all views and fetch config from settings
-config = configparser.ConfigParser()
-config.read('tweetsforsats/my_settings.ini')
 
 # Create your views here.
 def index(request):
@@ -43,7 +38,7 @@ def index(request):
     context = {
         'key': key,
         'balances': balances,
-        'store': config['BTCPAY']['StoreId'],
+        'store': settings.BTCPAY_STORE_ID,
         'invoice': f"lightning:{bolt11}",
         'invoice_id': invoice_id,
         'form': form
@@ -51,9 +46,9 @@ def index(request):
     return render(request, 'main/index.html', context)
 
 def invoice():
-    host = config['BTCPAY']['Url']
-    token = config['BTCPAY']['Token']
-    store = config['BTCPAY']['StoreId']
+    host = settings.BTCPAY_URL
+    token = settings.BTCPAY_TOKEN
+    store = settings.BTCPAY_STORE_ID
 
     invoice_info = {'amount': "100000", 'description': "Tweet Stake", 'expiry': 90, 'privateRouteHints': True}
 
@@ -66,9 +61,9 @@ def invoice():
     return invoice
     
 def check_invoice(request, invoice_id):
-    host = config['BTCPAY']['Url']
-    token = config['BTCPAY']['Token']
-    store = config['BTCPAY']['StoreId']
+    host = settings.BTCPAY_URL
+    token = settings.BTCPAY_TOKEN
+    store = settings.BTCPAY_STORE_ID
 
     headers = {'Authorization': f"token {token}"}
 
@@ -102,11 +97,11 @@ def tweet(request):
             if key == "":
                 return redirect('main:index')
 
-            bearerToken = config['TWITTER']['BearerToken']
-            accesstoken = config['TWITTER']['AccessToken']
-            apikey = config['TWITTER']['ApiKey']
-            apikeysecret = config['TWITTER']['ApiKeySecret']
-            accesstokensecret = config['TWITTER']['AccessTokenSecret']
+            bearerToken = settings.TWITTER_BEARER_TOKEN
+            accesstoken = settings.TWITTER_ACCESS_TOKEN
+            apikey = settings.TWITTER_API_KEY
+            apikeysecret = settings.TWITTER_API_KEY_SECRET
+            accesstokensecret = settings.TWITTER_ACCESS_TOKEN_SECRET
             
             client = tweepy.Client(
                 bearer_token=bearerToken, 

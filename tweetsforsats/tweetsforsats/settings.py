@@ -13,9 +13,24 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import configparser
 
-
+# MY_SETTINGS INI
 config = configparser.ConfigParser()
 config.read('tweetsforsats/my_settings.ini')
+
+# TWITTER
+TWITTER_ACCESS_TOKEN = config['TWITTER']['AccessToken']
+TWITTER_ACCESS_TOKEN_SECRET = config['TWITTER']['AccessTokenSecret']
+TWITTER_API_KEY = config['TWITTER']['ApiKey']
+TWITTER_API_KEY_SECRET = config['TWITTER']['ApiKeySecret']
+TWITTER_BEARER_TOKEN = config['TWITTER']['BearerToken']
+
+# BTCPAY
+BTCPAY_URL = config['BTCPAY']['Url']
+BTCPAY_TOKEN = config['BTCPAY']['Token']
+BTCPAY_STORE_ID = config['BTCPAY']['StoreId']
+
+# OTHER
+DEBUG_BASE_URL = config['DEBUG']['BaseUrl']
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
