@@ -13,6 +13,8 @@ from django.contrib.sessions.models import Session
 import secrets
 import ecdsa
 
+from tweetsforsats import config
+
 # Create your views here.
 def auth(request):
     k1 = request.GET.get('k1')
@@ -46,7 +48,7 @@ def login(request):
 
     cache.get_or_set(k1, '', 120)
 
-    url = f"{settings.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={k1}"
+    url = f"{config.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={k1}"
     lnurl = encode(url)
     context = {
         'lnurl': lnurl,

@@ -1,12 +1,11 @@
 from django.shortcuts import render, redirect
 from main.models import Balances, Tweet
 from django.http import JsonResponse
-from django.conf import settings
 from lnurl import encode
 import requests
 from main.forms import TweetForm
 import tweepy
-
+from tweetsforsats import config
 # Create your views here.
 def index(request):
     key = ''
@@ -38,7 +37,7 @@ def index(request):
     context = {
         'key': key,
         'balances': balances,
-        'store': settings.BTCPAY_STORE_ID,
+        'store': config.BTCPAY_STORE_ID,
         'invoice': f"lightning:{bolt11}",
         'invoice_id': invoice_id,
         'form': form
@@ -46,9 +45,9 @@ def index(request):
     return render(request, 'main/index.html', context)
 
 def invoice():
-    host = settings.BTCPAY_URL
-    token = settings.BTCPAY_TOKEN
-    store = settings.BTCPAY_STORE_ID
+    host = config.BTCPAY_URL
+    token = config.BTCPAY_TOKEN
+    store = config.BTCPAY_STORE_ID
 
     invoice_info = {'amount': "100000", 'description': "Tweet Stake", 'expiry': 90, 'privateRouteHints': True}
 
@@ -61,9 +60,9 @@ def invoice():
     return invoice
     
 def check_invoice(request, invoice_id):
-    host = settings.BTCPAY_URL
-    token = settings.BTCPAY_TOKEN
-    store = settings.BTCPAY_STORE_ID
+    host = config.BTCPAY_URL
+    token = config.BTCPAY_TOKEN
+    store = config.BTCPAY_STORE_ID
 
     headers = {'Authorization': f"token {token}"}
 
@@ -97,11 +96,11 @@ def tweet(request):
             if key == "":
                 return redirect('main:index')
 
-            bearerToken = settings.TWITTER_BEARER_TOKEN
-            accesstoken = settings.TWITTER_ACCESS_TOKEN
-            apikey = settings.TWITTER_API_KEY
-            apikeysecret = settings.TWITTER_API_KEY_SECRET
-            accesstokensecret = settings.TWITTER_ACCESS_TOKEN_SECRET
+            bearerToken = config.TWITTER_BEARER_TOKEN
+            accesstoken = config.TWITTER_ACCESS_TOKEN
+            apikey = config.TWITTER_API_KEY
+            apikeysecret = config.TWITTER_API_KEY_SECRET
+            accesstokensecret = config.TWITTER_ACCESS_TOKEN_SECRET
             
             client = tweepy.Client(
                 bearer_token=bearerToken, 
@@ -136,8 +135,7 @@ def tweet(request):
                     reply_id = reply_url.split("/").pop().split("?")[0]
                 if quote_url != "":
                     quote_id = quote_url.split("/").pop().split("?")[0]
-                # TODO: Test quote
-                # TODO: Fix permissions for reply and quote (if necessary)
+                    
                 response = client.create_tweet(text=form.cleaned_data['text'], in_reply_to_tweet_id=reply_id, quote_tweet_id=quote_id, user_auth=True)
                 try:
                     tweet_id = response.data['id']
