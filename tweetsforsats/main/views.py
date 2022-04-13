@@ -5,6 +5,7 @@ from lnurl import encode
 import requests
 from main.forms import TweetForm
 import tweepy
+from datetime import timedelta, datetime
 from tweetsforsats import config
 # Create your views here.
 def index(request):
@@ -15,9 +16,26 @@ def index(request):
         pass
 
     balances = None
+    tweets = []
     if key != '':
         balances, created = Balances.objects.get_or_create(key=key, defaults={'pending': 0, 'available': 0, 'withdrawn': 0})
-        # TODO: Get recent tweets
+        # Update pending and available balances
+        if balances != None:
+            tweets = Tweet.objects.filter(key=key)
+            delta = timedelta(days=2)
+            pending = balances.pending
+            available = balances.available
+            for tweet in tweets:
+                if datetime.now(tz=tweet.created.tzinfo) - tweet.created >= delta:
+                    pending = pending - tweet.stake
+                    available = available + tweet.stake
+            if pending != balances.pending:
+                balances.pending = pending
+                balances.available = available
+                balances.save()
+        # Get recent tweets
+        if len(tweets) > 0:
+            tweets.filter(created__gte=datetime.today()).order_by('-created')
 
     get_invoice = request.GET.get('invoice')
 
@@ -40,7 +58,8 @@ def index(request):
         'store': config.BTCPAY_STORE_ID,
         'invoice': f"lightning:{bolt11}",
         'invoice_id': invoice_id,
-        'form': form
+        'form': form,
+        'recent': tweets
     }
     return render(request, 'main/index.html', context)
 

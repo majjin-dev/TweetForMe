@@ -8,9 +8,14 @@
         {% if key %}
         {% load qr_code %}
         <a href="{% url 'lnlogin:logout' %}">Logout</a>
-        <h1>Hello, @{{ key }}</h1>
+        <h2>Hello, @{{ key }}</h2>
         <h3>Pending: {{ balances.pending }} sats | Available: {{ balances.available }} sats</h3>
-        <!--TODO: Display recent tweets-->
+        <h2>Recent Tweets:</h2>
+        <ul>
+            {% for tweet in recent %}
+            <li><a href="https://twitter.com/TweetsForSats/status/{{ tweet.twitter_id }}">{{ tweet.twitter_id }}</a></li>
+            {% endfor %}
+        </ul>
         <!--TODO: Turn "Available" into a link/button that displays lnurl-withdraw qr-->
         <button type="button" id="tweetBtn" onclick="get_invoice()">Tweet!</button>
 
