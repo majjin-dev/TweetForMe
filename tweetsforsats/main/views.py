@@ -288,6 +288,7 @@ def withdraw_status(request, k1):
         return JsonResponse({"status": "ERROR"})
 
     if k1_cache == "Success":
+        cache.delete(k1)
         return JsonResponse({"status": "OK"})
 
     return JsonResponse({"status": "WAIT"})
