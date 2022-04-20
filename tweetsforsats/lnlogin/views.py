@@ -20,6 +20,7 @@ def auth(request):
     k1 = request.GET.get('k1')
     key = request.GET.get('key')
     sig = request.GET.get('sig')
+    action = request.GET.get('action')
 
     if k1 is None:
         return JsonResponse({'status': "ERROR", 'reason': "No challenge found."})
@@ -38,7 +39,16 @@ def auth(request):
 
     try:
         if vk.verify_digest(signature=bytearray.fromhex(sig), digest=bytearray.fromhex(k1), sigdecode=ecdsa.util.sigdecode_der):
-            cache.set(k1, key)
+
+            if action == "login" or action == None:
+                cache.set(k1, f"login:{key}")
+            if action == "auth":
+                cache.set(k1, f"auth:{key}")
+            if action == "link":
+                cache.set(k1, f"link:{key}")
+            if action == "register":
+                cache.set(k1, f"register:{key}")
+
             return JsonResponse({'status': "OK"})
     except ecdsa.BadSignatureError as err:
         return JsonResponse({'status': "ERROR", 'reason': err.args[0]})
@@ -60,12 +70,19 @@ def check(request):
     k1 = request.GET.get('k1')
     key = cache.get(k1)
     if not key is None and not key == '':
-        # TODO: Tie this session to the ip and user agent string of the user
-        # TODO: Decorator that checks the ip and user agent string to validate user
-        # TODO: https://docs.djangoproject.com/en/4.0/ref/request-response/#django.http.HttpRequest.META
-        request.session['key'] = key
-        cache.delete(k1)
-        return JsonResponse({'authenticated': True})
+        if key.find('login') > -1:
+            # TODO: Tie this session to the ip and user agent string of the user
+            # TODO: Decorator that checks the ip and user agent string to validate user
+            # TODO: https://docs.djangoproject.com/en/4.0/ref/request-response/#django.http.HttpRequest.META
+            request.session['key'] = key[6:]
+
+            cache.delete(k1)
+
+        if key.find('auth') > -1:
+            return JsonResponse({'authenticated': True, 'k1': k1})
+        else:
+            return JsonResponse({'authenticated': True})
+            
     return JsonResponse({'authenticated': False})
 
 def logout(request):

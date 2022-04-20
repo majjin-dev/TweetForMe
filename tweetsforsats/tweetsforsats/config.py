@@ -17,6 +17,10 @@ BTCPAY_URL = ""
 BTCPAY_TOKEN = ""
 BTCPAY_STORE_ID = ""
 
+#LND
+LND_URL = ""
+LND_METADATA_MAC = ""
+
 # OTHER
 DEBUG_BASE_URL = "http://localhost/"
 
@@ -32,6 +36,9 @@ try:
     BTCPAY_URL = config['BTCPAY']['Url']
     BTCPAY_TOKEN = config['BTCPAY']['Token']
     BTCPAY_STORE_ID = config['BTCPAY']['StoreId']
+
+    LND_URL = config['LND']['Url']
+    LND_METADATA_MAC = config['LND']['MetadataMac']
 
     # OTHER
     DEBUG_BASE_URL = config['DEBUG']['BaseUrl']

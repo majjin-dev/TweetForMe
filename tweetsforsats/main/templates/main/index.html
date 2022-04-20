@@ -3,21 +3,73 @@
     <head>
         <title>Tweets For Sats</title>
     </head>
-    <body {% if invoice_id %}onload="startChecking()"{% endif %}>
+    <body {% if invoice_id or auth_url != '' %}onload="startChecking()"{% endif %}>
+
         <h1>Welcome to Tweets for Sats</h1>
         {% if key %}
         {% load qr_code %}
         <a href="{% url 'lnlogin:logout' %}">Logout</a>
         <h2>Hello, @{{ key }}</h2>
-        <h3>Pending: {{ balances.pending }} sats | Available: {{ balances.available }} sats</h3>
+        <h3>Pending: {{ balances.pending }} sats | {% if balances.available > 0 %}<a href="{% url 'main:index' %}?withdraw=true" onclick="">Available</a>{% else %}Available{% endif %}: {{ balances.available }} sats</h3>
         <h2>Recent Tweets:</h2>
         <ul>
             {% for tweet in recent %}
             <li><a href="https://twitter.com/TweetsForSats/status/{{ tweet.twitter_id }}">{{ tweet.twitter_id }}</a></li>
             {% endfor %}
         </ul>
-        <!--TODO: Turn "Available" into a link/button that displays lnurl-withdraw qr-->
+
+        {% if auth_url != "" %}
+        
+        <div id="auth">
+            <h2>Authorize Withdrawal</h2>
+            {% qr_from_text auth_url size="s" %}
+        </div>
+
+        <div id="withdrawal" style="display: none;">
+            <h2>Withdraw sats!</h2>
+            {% qr_from_text withdraw_url size="s" %}
+        </div>
+
+        <script>
+            var interval;
+            var status_interval;
+            var timeout;
+
+            function startChecking(){
+                interval = setInterval(check, 2000);
+                timeout = setTimeout(() => location.reload(), 120000);
+            }
+
+            function check() {
+                fetch("{% url 'lnlogin:check' %}?k1={{ challenge }}")
+                .then(response => response.json())
+                .then(function(data){
+                    if (data.authenticated == true){
+                        clearInterval(interval);
+                        clearTimeout(timeout);
+                        document.getElementById("auth").style.display = "None";
+                        document.getElementById("withdrawal").style.display = "Block";
+                        status_interval = setInterval(status, 2000);
+                    }
+                });
+            }
+
+            function status() {
+                fetch("{% url 'main:withdraw_status' challenge %}")
+                .then(response => response.json())
+                .then(function(data){
+                    if (data.status != "WAIT"){
+                        location.replace("{% url 'main:index' %}")
+                    }
+                });
+            }
+        </script>
+
+        {% endif %}
+
+        {% if auth_url == "" %}
         <button type="button" id="tweetBtn" onclick="get_invoice()">Tweet!</button>
+        {% endif %}
 
         {% if invoice_id %}
         <div id="invoice">

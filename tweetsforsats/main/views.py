@@ -7,8 +7,11 @@ from main.forms import TweetForm
 import tweepy
 from datetime import timedelta, datetime
 from tweetsforsats import config
-# Create your views here.
+from django.core.cache import cache
+import secrets
+
 def index(request):
+    # Get the user's public key
     key = ''
     try:
         key = request.session['key']
@@ -37,20 +40,35 @@ def index(request):
         if len(tweets) > 0:
             tweets.filter(created__gte=datetime.today()).order_by('-created')
 
+    # Should we display an invoice?
     get_invoice = request.GET.get('invoice')
 
     bolt11 = ""
     invoice_id = ""
-
     form = None
-    try:
-        if get_invoice:
+
+    if get_invoice:
+        try:
             inv = invoice()
             bolt11 = inv['BOLT11']
             invoice_id = inv['id']
             form = TweetForm(initial={'invoice_id': invoice_id})
-    except KeyError:
-        pass
+        except KeyError:
+            pass
+
+    # TODO: Withdraw challenge
+    # Should we authorize a withdrawal?
+    auth_withdrawal = request.GET.get('withdraw')
+
+    wk1 = None
+    lnurl = ""
+    withdraw_url = ""
+
+    if auth_withdrawal:
+        wk1 = secrets.token_hex(32)
+        cache.get_or_set(wk1, '', 120)
+        lnurl = encode(f"{config.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={wk1}&action=auth")
+        withdraw_url = encode(f"{config.DEBUG_BASE_URL}/main/withdraw_request?max={balances.available}&k1={wk1}")
 
     context = {
         'key': key,
@@ -59,7 +77,10 @@ def index(request):
         'invoice': f"lightning:{bolt11}",
         'invoice_id': invoice_id,
         'form': form,
-        'recent': tweets
+        'recent': tweets,
+        'auth_url': lnurl,
+        'withdraw_url': f"lightning:{withdraw_url}",
+        'challenge': wk1
     }
     return render(request, 'main/index.html', context)
 
@@ -167,3 +188,106 @@ def tweet(request):
                 except KeyError:
                     return redirect('main:index')
     return redirect('main:index')
+
+def withdraw_request(request):
+
+    max = int(request.GET.get('max'))
+
+    if max == None:
+        max = 100
+        
+    k1 = request.GET.get('k1')
+    response = {
+        "tag": "withdrawRequest",
+        "callback": f'{config.DEBUG_BASE_URL}/main/withdraw',
+        "k1": k1,
+        "defaultDescription": "Reclaiming tweet stake sats",
+        "minWithdrawable": 0,
+        "maxWithdrawable": max * 1000
+    }
+    return JsonResponse(response)
+
+def withdraw(request):
+    k1: str = request.GET.get('k1')
+    pr: str = request.GET.get('pr')
+
+    # Check k1
+    k1_cache = cache.get(k1)
+    key = None
+    if k1_cache == None or k1_cache.find("auth") < 0:
+        return JsonResponse({"status": "ERROR", "reason": "Invalid or expired challenge"})
+    else:
+        key = k1_cache[5:]
+
+    if key == None or key == '':
+        return JsonResponse({"status": "ERROR", "reason": "Invalid pubkey"})
+
+
+    #Get config values
+    host = config.BTCPAY_URL
+    token = config.BTCPAY_TOKEN
+    store = config.BTCPAY_STORE_ID
+
+    lndUrl = config.LND_URL
+    lndMac = config.LND_METADATA_MAC
+
+    # Parse and Check invoice
+    lnd_headers = {'Grpc-Metadata-macaroon': lndMac}
+
+    r0 = requests.get(f"{lndUrl}/v1/payreq/{pr}", headers=lnd_headers, verify='tweetsforsats/tls.cert')
+
+    payreq = r0.json()
+
+    invoice_amt = int(payreq['num_satoshis'])
+    balances, created = Balances.objects.get_or_create(key=key, defaults={'pending': 0, 'available': 0, 'withdrawn': 0})
+
+    if invoice_amt > balances.available:
+        return JsonResponse({"status": "ERROR", "reason": "Withdrawal amount exceeds available amount."})
+
+    # Pay Invoice
+    headers = {'Authorization': f"token {token}"}
+
+    invoice_info = {"BOLT11": pr}
+
+    r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices/pay", json=invoice_info, headers=headers)
+
+    if r.status_code != 200:
+        # Check for 400 error
+        if r.status_code == 400:
+            cache.set(k1, "Error")
+            return JsonResponse({"status": "ERROR", "reason": "Could not find route"})
+
+        # Check for 422 error
+        if r.status_code == 422:
+            cache.set(k1, "Error")
+            return JsonResponse({"status": "ERROR", "reason": "Unable to validate request"})
+
+        # Check for 404 error
+        if r.status_code == 404:
+            cache.set(k1, "Error")
+            return JsonResponse({"status": "ERROR", "reason": "Lightning node config not found"})
+
+        # Check for 503 error
+        if r.status_code == 503:
+            cache.set(k1, "Error")
+            return JsonResponse({"status": "ERROR", "reason": "Unable to access lightning node"})
+
+    # Update balance
+    balances.available = balances.available - invoice_amt
+    balances.withdrawn = balances.withdrawn + invoice_amt
+    balances.save()
+
+    cache.set(k1, "Success")
+
+    return JsonResponse({"status": "OK"})
+
+def withdraw_status(request, k1):
+    k1_cache = cache.get(k1)
+
+    if k1_cache == None or k1_cache == "Error":
+        return JsonResponse({"status": "ERROR"})
+
+    if k1_cache == "Success":
+        return JsonResponse({"status": "OK"})
+
+    return JsonResponse({"status": "WAIT"})

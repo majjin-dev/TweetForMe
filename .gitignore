@@ -1,6 +1,7 @@
 db.sqlite3
 my_settings.ini
 *.ini
+*.cert
 
 # Django #
 *.log
