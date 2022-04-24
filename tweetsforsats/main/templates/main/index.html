@@ -3,7 +3,7 @@
     <head>
         <title>Tweets For Sats</title>
     </head>
-    <body {% if invoice_id or auth_url != '' %}onload="startChecking()"{% endif %}>
+    <body {% if invoice_id or auth_url %}onload="startChecking()"{% endif %}>
 
         <h1>Welcome to Tweets for Sats</h1>
         {% if key %}
@@ -18,7 +18,7 @@
             {% endfor %}
         </ul>
 
-        {% if auth_url != "" %}
+        {% if auth_url %}
         
         <div id="auth">
             <h2>Authorize Withdrawal</h2>
@@ -67,7 +67,7 @@
 
         {% endif %}
 
-        {% if auth_url == "" %}
+        {% if not auth_url %}
         <button type="button" id="tweetBtn" onclick="get_invoice()">Tweet!</button>
         {% endif %}
 

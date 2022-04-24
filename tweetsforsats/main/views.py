@@ -10,29 +10,38 @@ from tweetsforsats import config
 from django.core.cache import cache
 import secrets
 
+# Front page view
 def index(request):
     # Get the user's public key
-    key = ''
+    key = None
     try:
         key = request.session['key']
     except KeyError:
         pass
 
-    balances = None
-    tweets = []
-    if key != '':
+    context = {
+        'key': key
+    }
+
+    # Logged in via lnurl
+    if key != None:
+
+        tweets = []
+        # Retrieve the user's balances
         balances, created = Balances.objects.get_or_create(key=key, defaults={'pending': 0, 'available': 0, 'withdrawn': 0})
         # Update pending and available balances
-        if balances != None:
-            tweets = Tweet.objects.filter(key=key)
-            delta = timedelta(days=2)
+        if balances:
+            #Get the user's tweet history
+            tweets = Tweet.objects.filter(key=key) 
+
+            delta = timedelta(days=2) # Stake duration
             pending = balances.pending
             available = balances.available
             for tweet in tweets:
-                if datetime.now(tz=tweet.created.tzinfo) - tweet.created >= delta:
+                if datetime.now(tz=tweet.created.tzinfo) - tweet.created >= delta: # Check if tweet is older than stake duration
                     pending = pending - tweet.stake
                     available = available + tweet.stake
-            if pending != balances.pending:
+            if pending != balances.pending: # Has balance changed?
                 balances.pending = pending
                 balances.available = available
                 balances.save()
@@ -40,108 +49,84 @@ def index(request):
         if len(tweets) > 0:
             tweets.filter(created__gte=datetime.today()).order_by('-created')
 
-    # Should we display an invoice?
-    get_invoice = request.GET.get('invoice')
+        # Front page variables
+        bolt11 = None # Tweet stake invoice
+        invoice_id = None # Tweet stake invoice id
+        form = None # Tweet form
+        wk1 = None # Withdrawal challenge
+        lnurl = None # Withdrawal auth lnurl
+        withdraw_url = None # Withdrawal url
 
-    bolt11 = ""
-    invoice_id = ""
-    form = None
+        # Front page options
+        get_invoice = request.GET.get('invoice') # Should we display an invoice for creating a tweet?
+        auth_withdrawal = request.GET.get('withdraw') # Should we authorize a withdrawal?
 
-    if get_invoice:
-        try:
-            inv = invoice()
-            bolt11 = inv['BOLT11']
-            invoice_id = inv['id']
-            form = TweetForm(initial={'invoice_id': invoice_id})
-        except KeyError:
-            pass
+        # Check which front page option to use
+        if get_invoice:
+            try:
+                inv = create_invoice()
+                bolt11 = inv['BOLT11']
+                invoice_id = inv['id']
+                form = TweetForm(initial={'invoice_id': invoice_id})
+            except KeyError:
+                pass
+        elif auth_withdrawal:
+            wk1 = secrets.token_hex(32)
+            cache.get_or_set(wk1, '', 120)
+            lnurl = encode(f"{config.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={wk1}&action=auth")
+            withdraw_url = encode(f"{config.DEBUG_BASE_URL}/main/withdraw_request?max={balances.available}&k1={wk1}")
 
-    # TODO: Withdraw challenge
-    # Should we authorize a withdrawal?
-    auth_withdrawal = request.GET.get('withdraw')
-
-    wk1 = None
-    lnurl = ""
-    withdraw_url = ""
-
-    if auth_withdrawal:
-        wk1 = secrets.token_hex(32)
-        cache.get_or_set(wk1, '', 120)
-        lnurl = encode(f"{config.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={wk1}&action=auth")
-        withdraw_url = encode(f"{config.DEBUG_BASE_URL}/main/withdraw_request?max={balances.available}&k1={wk1}")
-
-    context = {
-        'key': key,
-        'balances': balances,
-        'store': config.BTCPAY_STORE_ID,
-        'invoice': f"lightning:{bolt11}",
-        'invoice_id': invoice_id,
-        'form': form,
-        'recent': tweets,
-        'auth_url': lnurl,
-        'withdraw_url': f"lightning:{withdraw_url}",
-        'challenge': wk1
-    }
+        context = {
+            'key': key,
+            'balances': balances,
+            'store': config.BTCPAY_STORE_ID,
+            'invoice': f"lightning:{bolt11}",
+            'invoice_id': invoice_id,
+            'form': form,
+            'recent': tweets,
+            'auth_url': lnurl,
+            'withdraw_url': f"lightning:{withdraw_url}",
+            'challenge': wk1
+        }
+        
     return render(request, 'main/index.html', context)
-
-def invoice():
-    host = config.BTCPAY_URL
-    token = config.BTCPAY_TOKEN
-    store = config.BTCPAY_STORE_ID
-
-    invoice_info = {'amount': "100000", 'description': "Tweet Stake", 'expiry': 90, 'privateRouteHints': True}
-
-    headers = {'Authorization': f"token {token}"}
-
-    r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices", json=invoice_info, headers=headers)
     
-    invoice = r.json()
-
-    return invoice
-    
+# Checks tweet stake invoice status
 def check_invoice(request, invoice_id):
-    host = config.BTCPAY_URL
-    token = config.BTCPAY_TOKEN
-    store = config.BTCPAY_STORE_ID
-
-    headers = {'Authorization': f"token {token}"}
-
-    r = requests.get(f"{host}/stores/{store}/lightning/BTC/invoices/{invoice_id}", headers=headers)
+    host = config.BTCPAY_URL # BTCPay Server API url
+    token = config.BTCPAY_TOKEN # BTCPay Server API authorization token
+    store = config.BTCPAY_STORE_ID # BTCPay Server Store ID
     
-    invoice = r.json()
+    return JsonResponse({'status': get_invoice(token, host, store, invoice_id)})
 
-    status = "Unpaid"
-
-    try:
-        status = invoice['status']
-    except KeyError:
-        if invoice != None:
-            status = "Expired"
-        pass
-
-    return JsonResponse({'status': status})
-
+# Creates a tweet
 def tweet(request):
 
     if request.method == 'POST':
+        # Get the tweet form
         form = TweetForm(request.POST)
 
+        # Check if form is valid
         if form.is_valid():
-            key = ""
+            # Get the logged in user's key
+            key = None
             try:
                 key = request.session['key']
             except KeyError:
                 pass
 
-            if key == "":
+            # Not logged in? Redirect to front page
+            if key == None:
                 return redirect('main:index')
 
+            # Twitter API authorization info
             bearerToken = config.TWITTER_BEARER_TOKEN
             accesstoken = config.TWITTER_ACCESS_TOKEN
             apikey = config.TWITTER_API_KEY
             apikeysecret = config.TWITTER_API_KEY_SECRET
             accesstokensecret = config.TWITTER_ACCESS_TOKEN_SECRET
             
+            # Create Twitter API Client
             client = tweepy.Client(
                 bearer_token=bearerToken, 
                 access_token=accesstoken, 
@@ -151,44 +136,78 @@ def tweet(request):
             )
 
             # Check if invoice has been used already
-            check_tweet = None
-            invoice = ""
+            checked_tweet = None
+            invoice = None
             try:
                 invoice = form.cleaned_data['invoice_id']
-                check_tweet = Tweet.objects.get(invoice_id=invoice)
+                checked_tweet = Tweet.objects.get(invoice_id=invoice)
             except Tweet.DoesNotExist:
                 pass
             except KeyError:
                 return redirect('main:index')
-            
-            if check_tweet == None:
-                reply_url = ""
-                quote_url = ""
-                try:
-                    reply_url = form.cleaned_data['reply_to']
-                    quote_url = form.cleaned_data['quote_tweet']
-                except KeyError:
-                    pass
-                reply_id = None
-                quote_id = None
-                if reply_url != "":
-                    reply_id = reply_url.split("/").pop().split("?")[0]
-                if quote_url != "":
-                    quote_id = quote_url.split("/").pop().split("?")[0]
-                    
-                response = client.create_tweet(text=form.cleaned_data['text'], in_reply_to_tweet_id=reply_id, quote_tweet_id=quote_id, user_auth=True)
-                try:
-                    tweet_id = response.data['id']
-                    new_tweet = Tweet(key=key, twitter_id=tweet_id, invoice_id=invoice)
-                    new_tweet.save()
+                
+            # If the tweet exists, redirect to main page
+            if checked_tweet:
+                return redirect('main:index')
 
-                    balance = Balances.objects.get_or_create(key=key)[0]
-                    balance.pending = balance.pending + new_tweet.stake
-                    balance.save()
-                except KeyError:
-                    return redirect('main:index')
+            # Check if invoice has actually been paid
+            host = config.BTCPAY_URL # BTCPay Server API url
+            token = config.BTCPAY_TOKEN # BTCPay Server API authorization token
+            store = config.BTCPAY_STORE_ID # BTCPay Server Store ID
+
+            # If invoice is upaid or expired, redirect to main page
+            if get_invoice(token, host, store, invoice) != "Paid":
+                return redirect('main:index')
+
+            # Checking if the tweet is a reply or quote tweet
+            reply_url = None # Url of the tweet to reply to
+            quote_url = None # Url of the tweet to quote
+            try:
+                reply_url = form.cleaned_data['reply_to']
+                quote_url = form.cleaned_data['quote_tweet']
+            except KeyError:
+                pass
+            reply_id = None # Id of the tweet to reply to
+            quote_id = None # quoted tweet id
+            # Parse reply url to extract the id of the tweet to reply to
+            if reply_url != None:
+                reply_id = reply_url.split("/").pop().split("?")[0]
+            # Parse quote tweet rul to extract quoted tweet id
+            if quote_url != None:
+                quote_id = quote_url.split("/").pop().split("?")[0]
+                
+            try:
+                # Send tweet
+                if reply_id and quote_id: # reply and quote
+                    response = client.create_tweet(text=form.cleaned_data['text'], in_reply_to_tweet_id=reply_id, quote_tweet_id=quote_id, user_auth=True)
+                elif reply_id: # reply
+                    response = client.create_tweet(text=form.cleaned_data['text'], in_reply_to_tweet_id=reply_id, user_auth=True)
+                elif quote_id: # quote
+                    response = client.create_tweet(text=form.cleaned_data['text'], quote_tweet_id=quote_id, user_auth=True)
+                else: # tweet normally
+                    response = client.create_tweet(text=form.cleaned_data['text'], user_auth=True)
+            except: # If unsuccessful, refund stake
+                balance = Balances.objects.get_or_create(key=key)[0]
+                balance.available = balance.available + new_tweet.stake
+                balance.save()
+                return redirect('main:index')
+
+            try:
+                # Save tweet information
+                tweet_id = response.data['id']
+                new_tweet = Tweet(key=key, twitter_id=tweet_id, invoice_id=invoice)
+                new_tweet.save()
+
+                # Change balances to reflect successful tweet
+                balance = Balances.objects.get_or_create(key=key)[0]
+                balance.pending = balance.pending + new_tweet.stake
+                balance.save()
+            except KeyError:
+                return redirect('main:index')
+                
     return redirect('main:index')
 
+# LNURL Withdraw - request invoice info
 def withdraw_request(request):
 
     max = int(request.GET.get('max'))
@@ -207,6 +226,7 @@ def withdraw_request(request):
     }
     return JsonResponse(response)
 
+# LNURL Withdraw - Pay withdrawal request
 def withdraw(request):
     k1: str = request.GET.get('k1')
     pr: str = request.GET.get('pr')
@@ -281,6 +301,7 @@ def withdraw(request):
 
     return JsonResponse({"status": "OK"})
 
+# Check if withdrawal is successful
 def withdraw_status(request, k1):
     k1_cache = cache.get(k1)
 
@@ -292,3 +313,49 @@ def withdraw_status(request, k1):
         return JsonResponse({"status": "OK"})
 
     return JsonResponse({"status": "WAIT"})
+
+# PRIVATE METHODS
+
+# Creates tweet stake invoice
+def create_invoice():
+    host = config.BTCPAY_URL # BTCPay Server API url
+    token = config.BTCPAY_TOKEN # BTCPay Server API authorization token
+    store = config.BTCPAY_STORE_ID # BTCPay Server Store ID
+
+    # Tweet stake invoice information
+    invoice_info = {'amount': "100000", 'description': "Tweet Stake", 'expiry': 90, 'privateRouteHints': True}
+
+    # API request authorization header
+    headers = {'Authorization': f"token {token}"}
+
+    # Send API request - Create tweet stake lighting invoice
+    r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices", json=invoice_info, headers=headers)
+    
+    # Parse API request
+    invoice = r.json()
+
+    return invoice
+
+# Gets an invoice
+def get_invoice(token, host, store, invoice_id):
+    # API request authorization header
+    headers = {'Authorization': f"token {token}"}
+
+    # Send API request - Get tweet stake lightning invoice
+    r = requests.get(f"{host}/stores/{store}/lightning/BTC/invoices/{invoice_id}", headers=headers)
+    
+    # Parse API request
+    invoice = r.json()
+
+    # Default invoice status
+    status = "Unpaid"
+
+    # Try to get invoice status, if there's no 'status' key, then the invoice is expired
+    try:
+        status = invoice['status']
+    except KeyError:
+        if invoice != None:
+            status = "Expired"
+        pass
+
+    return status

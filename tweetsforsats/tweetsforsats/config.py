@@ -1,8 +1,7 @@
 import configparser
 
-# MY_SETTINGS INI
+# Read from config.ini
 config = configparser.ConfigParser()
-# config.read('tweetsforsats/config.ini')
 config.read('tweetsforsats/config.ini')
 
 # TWITTER

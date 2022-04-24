@@ -3,4 +3,3 @@ from main.models import Tweet, Balances
 
 admin.site.register(Tweet)
 admin.site.register(Balances)
-# Register your models here.

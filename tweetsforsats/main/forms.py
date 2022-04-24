@@ -1,5 +1,6 @@
 from django import forms
 
+# Form for making a tweet
 class TweetForm(forms.Form):
     text = forms.CharField(max_length=280, required=True, label='Body')
     reply_to = forms.CharField(max_length=150, label='Reply To', required=False)
