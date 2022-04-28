@@ -4,6 +4,9 @@ import configparser
 config = configparser.ConfigParser()
 config.read('tweetsforsats/config.ini')
 
+# SETINGS
+SECRET_KEY = ""
+
 # TWITTER
 TWITTER_ACCESS_TOKEN = ""
 TWITTER_ACCESS_TOKEN_SECRET = ""
@@ -24,6 +27,9 @@ LND_METADATA_MAC = ""
 DEBUG_BASE_URL = "http://localhost/"
 
 try:
+    # SETTINGS
+    SECRET_KEY = config['SETTINGS']['SecretKey']
+
     # TWITTER
     TWITTER_ACCESS_TOKEN = config['TWITTER']['AccessToken']
     TWITTER_ACCESS_TOKEN_SECRET = config['TWITTER']['AccessTokenSecret']
