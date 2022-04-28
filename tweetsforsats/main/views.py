@@ -73,8 +73,8 @@ def index(request):
         elif auth_withdrawal:
             wk1 = secrets.token_hex(32)
             cache.get_or_set(wk1, '', 120)
-            lnurl = encode(f"{config.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={wk1}&action=auth")
-            withdraw_url = encode(f"{config.DEBUG_BASE_URL}/main/withdraw_request?max={balances.available}&k1={wk1}")
+            lnurl = encode(f"{config.BASE_URL}/lnlogin/auth?tag=login&k1={wk1}&action=auth")
+            withdraw_url = encode(f"{config.BASE_URL}/main/withdraw_request?max={balances.available}&k1={wk1}")
 
         context = {
             'key': key,
@@ -218,7 +218,7 @@ def withdraw_request(request):
     k1 = request.GET.get('k1')
     response = {
         "tag": "withdrawRequest",
-        "callback": f'{config.DEBUG_BASE_URL}/main/withdraw',
+        "callback": f'{config.BASE_URL}/main/withdraw',
         "k1": k1,
         "defaultDescription": "Reclaiming tweet stake sats",
         "minWithdrawable": 0,

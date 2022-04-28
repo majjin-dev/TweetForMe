@@ -24,10 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config.SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config.DEBUG
 
-ALLOWED_HOSTS = ['*',]
+ALLOWED_HOSTS = ['*' if DEBUG else config.BASE_URL,]
 
+CSRF_COOKIE_SECURE = True
+
+SESSION_COOKIE_SECURE = True
 
 # Application definition
 
@@ -74,6 +77,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tweetsforsats.wsgi.application'
 
 STATIC_URL = 'static/'
+
+# The absolute path to the directory where collectstatic will collect static files for deployment.
+# https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-STATIC_ROOT
+STATIC_ROOT = config.STATIC_ROOT
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
@@ -135,4 +142,4 @@ CACHES = {
     }
 }
 
-CSRF_TRUSTED_ORIGINS = [config.DEBUG_BASE_URL]
+CSRF_TRUSTED_ORIGINS = [config.BASE_URL]

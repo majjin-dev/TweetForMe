@@ -66,7 +66,7 @@ def login(request):
     # Cache login challenge for 2 min
     cache.get_or_set(k1, '', 120)
 
-    url = f"{config.DEBUG_BASE_URL}/lnlogin/auth?tag=login&k1={k1}" # Link to lnurl auth endpoint
+    url = f"{config.BASE_URL}/lnlogin/auth?tag=login&k1={k1}" # Link to lnurl auth endpoint
     lnurl = encode(url) # Encode lnurl auth endpoint
 
     context = {

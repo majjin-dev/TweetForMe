@@ -6,6 +6,8 @@ config.read('tweetsforsats/config.ini')
 
 # SETINGS
 SECRET_KEY = ""
+DEBUG = False
+STATIC_ROOT = "/home/static_files"
 
 # TWITTER
 TWITTER_ACCESS_TOKEN = ""
@@ -24,11 +26,14 @@ LND_URL = ""
 LND_METADATA_MAC = ""
 
 # OTHER
-DEBUG_BASE_URL = "http://localhost/"
+BASE_URL = "http://localhost/"
 
 try:
     # SETTINGS
     SECRET_KEY = config['SETTINGS']['SecretKey'].replace('"', '')
+    BASE_URL = config['SETTINGS']['BaseUrl']
+    DEBUG = config['SETTINGS']['Debug'] == 'true'
+    STATIC_ROOT = config['SETTINGS']['']
 
     # TWITTER
     TWITTER_ACCESS_TOKEN = config['TWITTER']['AccessToken']
@@ -44,8 +49,6 @@ try:
 
     LND_URL = config['LND']['Url']
     LND_METADATA_MAC = config['LND']['MetadataMac']
-
-    # OTHER
-    DEBUG_BASE_URL = config['DEBUG']['BaseUrl']
+    
 except KeyError:
     pass
