@@ -28,7 +28,7 @@ DEBUG_BASE_URL = "http://localhost/"
 
 try:
     # SETTINGS
-    SECRET_KEY = config['SETTINGS']['SecretKey']
+    SECRET_KEY = config['SETTINGS']['SecretKey'].replace('"', '')
 
     # TWITTER
     TWITTER_ACCESS_TOKEN = config['TWITTER']['AccessToken']
