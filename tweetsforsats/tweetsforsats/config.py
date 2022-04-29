@@ -1,54 +1,24 @@
-import configparser
-
-# Read from config.ini
-config = configparser.ConfigParser()
-config.read('tweetsforsats/config.ini')
+import os
+from django.core.management.utils import get_random_secret_key
 
 # SETINGS
-SECRET_KEY = ""
-DEBUG = False
-STATIC_ROOT = "/home/static_files"
+SECRET_KEY = os.getenv("Settings_SecretKey", get_random_secret_key())
+DEBUG = os.getenv("Settings_Debug", "False") == "True"
+STATIC_ROOT = os.getenv("Settings_StaticRoot", "/home/static_files")
+BASE_URL = os.getenv("Settings_BaseUrl", "http://localhost:8000/")
 
 # TWITTER
-TWITTER_ACCESS_TOKEN = ""
-TWITTER_ACCESS_TOKEN_SECRET = ""
-TWITTER_API_KEY = ""
-TWITTER_API_KEY_SECRET = ""
-TWITTER_BEARER_TOKEN = ""
+TWITTER_ACCESS_TOKEN = os.getenv("Twitter_AccessToken")
+TWITTER_ACCESS_TOKEN_SECRET = os.getenv("Twitter_AccessTokenSecret")
+TWITTER_API_KEY = os.getenv("Twitter_ApiKey")
+TWITTER_API_KEY_SECRET = os.getenv("Twitter_ApiKeySecret")
+TWITTER_BEARER_TOKEN = os.getenv("Twitter_BearerToken")
 
 # BTCPAY
-BTCPAY_URL = ""
-BTCPAY_TOKEN = ""
-BTCPAY_STORE_ID = ""
+BTCPAY_URL = os.getenv("BtcPay_Url")
+BTCPAY_TOKEN = os.getenv("BtcPay_Token")
+BTCPAY_STORE_ID = os.getenv("BtcPay_StoreId")
 
 #LND
-LND_URL = ""
-LND_METADATA_MAC = ""
-
-# OTHER
-BASE_URL = "http://localhost/"
-
-try:
-    # SETTINGS
-    SECRET_KEY = config['SETTINGS']['SecretKey'].replace('"', '')
-    BASE_URL = config['SETTINGS']['BaseUrl']
-    DEBUG = config['SETTINGS']['Debug'] == 'true'
-    STATIC_ROOT = config['SETTINGS']['']
-
-    # TWITTER
-    TWITTER_ACCESS_TOKEN = config['TWITTER']['AccessToken']
-    TWITTER_ACCESS_TOKEN_SECRET = config['TWITTER']['AccessTokenSecret']
-    TWITTER_API_KEY = config['TWITTER']['ApiKey']
-    TWITTER_API_KEY_SECRET = config['TWITTER']['ApiKeySecret']
-    TWITTER_BEARER_TOKEN = config['TWITTER']['BearerToken']
-
-    # BTCPAY
-    BTCPAY_URL = config['BTCPAY']['Url']
-    BTCPAY_TOKEN = config['BTCPAY']['Token']
-    BTCPAY_STORE_ID = config['BTCPAY']['StoreId']
-
-    LND_URL = config['LND']['Url']
-    LND_METADATA_MAC = config['LND']['MetadataMac']
-    
-except KeyError:
-    pass
+LND_URL = os.getenv("LND_Url")
+LND_METADATA_MAC = os.getenv("LND_MetadataMac")
