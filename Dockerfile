@@ -9,7 +9,8 @@ COPY . ./
 FROM python:3.8
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
+# Original line: https://tailscale.com/kb/1107/heroku/
+# RUN apt-get update && apt-get add ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy binary to production image
 # COPY --from=builder /app/start.sh /app/start.sh
