@@ -4,7 +4,6 @@ from django.core.management.utils import get_random_secret_key
 # SETINGS
 SECRET_KEY = os.getenv("Settings_SecretKey", get_random_secret_key())
 DEBUG = os.getenv("Settings_Debug", "False") == "True"
-STATIC_ROOT = os.getenv("Settings_StaticRoot", "/home/Documents")
 BASE_URL = os.getenv("Settings_BaseUrl", "http://localhost:8000/")
 
 # TWITTER

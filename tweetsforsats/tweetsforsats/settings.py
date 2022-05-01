@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from tweetsforsats import config
 
@@ -76,11 +76,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tweetsforsats.wsgi.application'
 
-STATIC_URL = 'static/'
-
 # The absolute path to the directory where collectstatic will collect static files for deployment.
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-STATIC_ROOT
-# STATIC_ROOT = config.STATIC_ROOT
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Extra places for collectstatic to find static files.
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
