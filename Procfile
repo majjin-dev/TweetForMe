@@ -1,1 +1,1 @@
-web: python tweetsforsats/manage.py runserver
+web: gunicorn tweetsforsats.wsgi

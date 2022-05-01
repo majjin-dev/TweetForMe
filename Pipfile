@@ -10,6 +10,7 @@ ecdsa = "*"
 django-qr-code = "*"
 lnurl = "*"
 requests = "*"
+gunicorn = "*"
 
 [dev-packages]
 
