@@ -1,0 +1,1 @@
+web: python tweetsforsats/manage.py runserver
