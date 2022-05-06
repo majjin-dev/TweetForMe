@@ -11,6 +11,7 @@ django-qr-code = "*"
 lnurl = "*"
 requests = "*"
 gunicorn = "*"
+whitenoise = "*"
 
 [dev-packages]
 
