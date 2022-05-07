@@ -1,5 +1,10 @@
 import os
+import sys
+from dotenv import load_dotenv
 from django.core.management.utils import get_random_secret_key
+
+if sys.prefix == sys.base_prefix:
+    load_dotenv()
 
 # SETINGS
 SECRET_KEY = os.getenv("Settings_SecretKey", get_random_secret_key())

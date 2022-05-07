@@ -12,6 +12,7 @@ lnurl = "*"
 requests = "*"
 gunicorn = "*"
 whitenoise = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
