@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'tweetsforsats.wsgi.application'
 
 # The absolute path to the directory where collectstatic will collect static files for deployment.
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-STATIC_ROOT
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') if DEBUG else "/var/www/tweetsforsats/static/"
 
 # Extra places for collectstatic to find static files.
 STATICFILES_DIRS = (
