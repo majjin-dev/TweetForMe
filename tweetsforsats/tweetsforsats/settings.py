@@ -26,7 +26,7 @@ SECRET_KEY = config.SECRET_KEY
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config.DEBUG
 
-ALLOWED_HOSTS = ['*' if DEBUG else config.BASE_URL,]
+ALLOWED_HOSTS = ['*' if DEBUG else '.tweetsforsats.com',]
 
 CSRF_COOKIE_SECURE = True
 
