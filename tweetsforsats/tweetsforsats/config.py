@@ -22,7 +22,3 @@ TWITTER_BEARER_TOKEN = os.getenv("Twitter_BearerToken")
 BTCPAY_URL = os.getenv("BtcPay_Url")
 BTCPAY_TOKEN = os.getenv("BtcPay_Token")
 BTCPAY_STORE_ID = os.getenv("BtcPay_StoreId")
-
-#LND
-LND_URL = os.getenv("LND_Url")
-LND_METADATA_MAC = os.getenv("LND_MetadataMac")

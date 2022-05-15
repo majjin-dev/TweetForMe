@@ -9,7 +9,7 @@ tweepy = "*"
 ecdsa = "*"
 django-qr-code = "*"
 lnurl = "*"
-requests = "*"
+requests = {extras = ["socks"], version = "*"}
 gunicorn = "*"
 whitenoise = "*"
 python-dotenv = "*"

@@ -9,6 +9,8 @@ from datetime import timedelta, datetime
 from tweetsforsats import config
 from django.core.cache import cache
 import secrets
+import bech32
+import re
 
 # Front page view
 def index(request):
@@ -251,14 +253,40 @@ def withdraw(request):
     lndUrl = config.LND_URL
     lndMac = config.LND_METADATA_MAC
 
+    # Setup Tor
+    tor = requests.session()
+    tor.proxies = {}
+    tor.proxies['http'] = 'socks5h://localhost:9050'
+    tor.proxies['https'] = 'socks5h://localhost:9050'
+
     # Parse and Check invoice
-    lnd_headers = {'Grpc-Metadata-macaroon': lndMac}
+    hrp, bech32_data = bech32.bech32_decode(pr)
 
-    r0 = requests.get(f"{lndUrl}/v1/payreq/{pr}", headers=lnd_headers, verify='tweetsforsats/tls.cert')
+    if not hrp or not bech32_data or not hrp.startswith("ln"):
+        cache.set(k1, "Error")
+        return JsonResponse({"status": "ERROR", "reason": "Bech32 Not Valid"})
 
-    payreq = r0.json()
+    try:
+        matches = re.match(r"ln(bc|bcrt|tb)(\w+)?", hrp)
+    except Exception as e:
+        cache.set(k1, "Error")
+        return JsonResponse({"status": "ERROR", "reason": str(e)})
 
-    invoice_amt = int(payreq['num_satoshis'])
+    currency, amount = matches.groups()
+
+    if not re.fullmatch(r"\d+[pnum]?", amount):
+        cache.set(k1, "Error")
+        return JsonResponse({"status": "ERROR", "reason": f"Invalid amount `{amount}`"})
+
+    invoice_amt = 0
+
+    try:
+        num = {"p": 10 ** 12, "n": 10 ** 9, "u": 10 ** 6, "m": 10 ** 3}[amount[-1]]
+        invoice_amt = (int(amount[:-1]) / num) * 100_000_000
+    except KeyError:
+        invoice_amt = int(amount) * 100_000_000
+        pass
+    
     balances, created = Balances.objects.get_or_create(key=key, defaults={'pending': 0, 'available': 0, 'withdrawn': 0})
 
     if invoice_amt > balances.available:
@@ -269,7 +297,8 @@ def withdraw(request):
 
     invoice_info = {"BOLT11": pr}
 
-    r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices/pay", json=invoice_info, headers=headers)
+    # r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices/pay", json=invoice_info, headers=headers)
+    r = tor.post(f"{host}/stores/{store}/lightning/BTC/invoices/pay", json=invoice_info, headers=headers)
 
     if r.status_code != 200:
         # Check for 400 error
@@ -318,6 +347,12 @@ def withdraw_status(request, k1):
 
 # Creates tweet stake invoice
 def create_invoice():
+    # Setup Tor
+    tor = requests.session()
+    tor.proxies = {}
+    tor.proxies['http'] = 'socks5h://localhost:9050'
+    tor.proxies['https'] = 'socks5h://localhost:9050'
+
     host = config.BTCPAY_URL # BTCPay Server API url
     token = config.BTCPAY_TOKEN # BTCPay Server API authorization token
     store = config.BTCPAY_STORE_ID # BTCPay Server Store ID
@@ -329,7 +364,8 @@ def create_invoice():
     headers = {'Authorization': f"token {token}"}
 
     # Send API request - Create tweet stake lighting invoice
-    r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices", json=invoice_info, headers=headers)
+    # r = requests.post(f"{host}/stores/{store}/lightning/BTC/invoices", json=invoice_info, headers=headers)
+    r = tor.post(f"{host}/stores/{store}/lightning/BTC/invoices", json=invoice_info, headers=headers)
     
     # Parse API request
     invoice = r.json()
@@ -338,11 +374,19 @@ def create_invoice():
 
 # Gets an invoice
 def get_invoice(token, host, store, invoice_id):
+
+    # Setup Tor
+    tor = requests.session()
+    tor.proxies = {}
+    tor.proxies['http'] = 'socks5h://localhost:9050'
+    tor.proxies['https'] = 'socks5h://localhost:9050'
+
     # API request authorization header
     headers = {'Authorization': f"token {token}"}
 
     # Send API request - Get tweet stake lightning invoice
-    r = requests.get(f"{host}/stores/{store}/lightning/BTC/invoices/{invoice_id}", headers=headers)
+    # r = requests.get(f"{host}/stores/{store}/lightning/BTC/invoices/{invoice_id}", headers=headers)
+    r = tor.get(f"{host}/stores/{store}/lightning/BTC/invoices/{invoice_id}", headers=headers)
     
     # Parse API request
     invoice = r.json()
