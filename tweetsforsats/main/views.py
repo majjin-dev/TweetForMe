@@ -250,9 +250,6 @@ def withdraw(request):
     token = config.BTCPAY_TOKEN
     store = config.BTCPAY_STORE_ID
 
-    lndUrl = config.LND_URL
-    lndMac = config.LND_METADATA_MAC
-
     # Setup Tor
     tor = requests.session()
     tor.proxies = {}
