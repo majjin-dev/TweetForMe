@@ -5,7 +5,7 @@
     </head>
     <body {% if invoice_id or auth_url %}onload="startChecking()"{% endif %}>
 
-        <h1>Welcome to Tweets for Sats</h1>
+        <a href="{% url 'main:index' %}" style="text-decoration: none; color: black;"><h1>Welcome to Tweets for Sats</h1></a>
         {% if key %}
         {% load qr_code %}
         <a href="{% url 'lnlogin:logout' %}">Logout</a>
