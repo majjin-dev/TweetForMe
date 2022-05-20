@@ -14,3 +14,4 @@ class Tweet(models.Model):
     created = models.DateTimeField(auto_now=True)
     stake = models.IntegerField(default=100)
     invoice_id = models.CharField(max_length=100, blank=False)
+    sats_pending = models.BooleanField(default=True)

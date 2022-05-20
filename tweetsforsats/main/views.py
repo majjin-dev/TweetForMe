@@ -40,9 +40,11 @@ def index(request):
             pending = balances.pending
             available = balances.available
             for tweet in tweets:
-                if datetime.now(tz=tweet.created.tzinfo) - tweet.created >= delta: # Check if tweet is older than stake duration
+                if datetime.now(tz=tweet.created.tzinfo) - tweet.created >= delta and tweet.sats_pending: # Check if tweet is older than stake duration
                     pending = pending - tweet.stake
                     available = available + tweet.stake
+                    tweet.sats_pending = False
+                    tweet.save()
             if pending != balances.pending: # Has balance changed?
                 balances.pending = pending
                 balances.available = available
